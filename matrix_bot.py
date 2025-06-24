@@ -1,5 +1,5 @@
 import asyncio, json
-from nio import AsyncClient, MatrixRoom, RoomMessageText, RoomSendResponse
+from nio import AsyncClient, MatrixRoom, RoomMessageText
 from nio.responses import LoginResponse
 import logging
 import ssl
