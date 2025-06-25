@@ -1,7 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from sqlalchemy import create_engine, inspect, text
+from pydantic import BaseModel
 
 app = FastAPI()
+
+# Body Model for query payload
+class Query(BaseModel):
+    query: str
 
 DB_URL = "mysql+mysqlconnector://root:root@localhost:3306/book"
 engine = create_engine(DB_URL)
@@ -19,8 +24,10 @@ def get_schema():
         fk_info = inspector.get_foreign_keys(table_name)
 
         pk_columns = set(pk_info.get("constrained_columns", []))
-        fk_columns = {fk["constrained_columns"][0]: fk["referred_table"] + "." + fk["referred_columns"][0]
-                      for fk in fk_info if fk.get("constrained_columns") and fk.get("referred_columns")}
+        fk_columns = {
+            fk["constrained_columns"][0]: fk["referred_table"] + "." + fk["referred_columns"][0]
+            for fk in fk_info if fk.get("constrained_columns") and fk.get("referred_columns")
+        }
 
         column_definitions = []
         for col in columns:
@@ -29,7 +36,6 @@ def get_schema():
                 "name": col_name,
                 "type": str(col["type"]),
             }
-
             if col_name in pk_columns:
                 col_entry["PK"] = True
             if col_name in fk_columns:
@@ -41,30 +47,21 @@ def get_schema():
 
     return schema
 
-@app.get("/query")
-def get_result(query):
+@app.post("/query")
+def get_result(query: Query):
 
-    #Convert query to lowercase and check for keyword
-    lowered_query = query.lower()
+    #Check for any prohibited SQL Query
+    lowered_query = query.query.lower()
     for keyword in FORBIDDEN_KEYWORDS:
         if keyword in lowered_query:
             raise HTTPException(status_code=400, detail="Prohibited SQL statement detected.")
-        
+
     with engine.connect() as connection:
         try:
-            result = connection.execute(text(query))
-            
-            rows = result.fetchall()
-            cols = result.keys()
+            result = connection.execute(text(query.query))
+            rows = result.mappings().all()
 
-            result_list = []
+            return rows
 
-            for row in rows:
-                row_dict = {}
-                for i in range(len(cols)):
-                    row_dict[cols[i]] = row[i]
-                result_list.append(row_dict)
-
-            return result_list
         except Exception as e:
-            raise HTTPException(status_code = 500, detail = f"Query execution failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
