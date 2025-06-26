@@ -8,7 +8,7 @@ app = FastAPI()
 class Query(BaseModel):
     query: str
 
-DB_URL = "mysql+mysqlconnector://root:root@localhost:3306/book"
+DB_URL = "mysql+mysqlconnector://root:root@host.docker.internal:3306/book"
 engine = create_engine(DB_URL)
 
 FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
