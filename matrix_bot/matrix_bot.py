@@ -27,9 +27,10 @@ async def send_message(room_id: str, message: str):
     )
 
 def format_result(result: list[dict]) -> str:
+    print(result)
     if not result:
         return "No results found."
-
+    
     output = []
     for i, row in enumerate(result, start=1):
         output.append(f"Result #{i}:")
@@ -42,7 +43,7 @@ def format_result(result: list[dict]) -> str:
 async def process_message(message: str):
     async with aiohttp.ClientSession() as session:
         # Step 1: Get schema
-        async with session.get("http://localhost/schema") as resp:
+        async with session.get("http://db-service:8003/schema") as resp:
             schema_json = await resp.json()
 
         # Step 2: Send to AI microservice
@@ -50,13 +51,13 @@ async def process_message(message: str):
             "question": message,
             "schema": schema_json
         }
-        async with session.post("http://localhost/ai", json=ai_payload) as ai_resp:
+        async with session.post("http://ai-service:8002/ai", json=ai_payload) as ai_resp:
             ai_data = await ai_resp.json()
             query = ai_data.get("query")
 
         # Step 3: Query the DB
         query_payload = {"query": query}
-        async with session.post("http://localhost/query", json=query_payload) as query_resp:
+        async with session.post("http://db-service:8003/query", json=query_payload) as query_resp:
             result = await query_resp.json()
 
         return result

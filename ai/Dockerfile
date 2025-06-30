@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run the app (adjust depending on script)
-CMD ["python", "ai.py"]
+CMD ["uvicorn", "ai:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, List, Optional
-import requests
 
 app = FastAPI()
 
@@ -16,19 +15,18 @@ class Prompt(BaseModel):
     schema: Dict[str, List[ColumnDefinition]]
 
 # Convert schema JSON to a human-readable string
-def convert_schema_to_string(schema: dict) -> str:
-    output = []
-    for table, columns in schema.items():
-        output.append(f"Table: {table}")
+def convert_schema_to_string(schema: Prompt) -> str:
+    lines = []
+    for table_name, columns in schema.items():
+        lines.append(f"Table: {table_name}")
         for col in columns:
-            col_line = f"  - {col['name']} ({col['type']})"
-            if col.get("PK"):
+            col_line = f"  - {col.name} ({col.type})"
+            if col.PK:
                 col_line += " [PK]"
-            if col.get("FK"):
-                col_line += f" [FK → {col['FK']}]"
-            output.append(col_line)
-        output.append("")  # empty line between tables
-    return "\n".join(output)
+            if col.FK:
+                col_line += f" [FK -> {col.FK}]"
+            lines.append(col_line)
+    return "\n".join(lines)
 
 # Function to generate prompt combining external txt with schema + user question
 def generate_prompt(schema: str, question: str) -> str:
@@ -50,11 +48,14 @@ def generate_prompt(schema: str, question: str) -> str:
 def ask_prompt(prompt: Prompt):
     schema_str = convert_schema_to_string(prompt.schema)
     final_prompt = generate_prompt(schema_str, prompt.question)
+    print(final_prompt)
+    
 
     payload = {
         "model": "deepseek-r1:7b-qwen-distill-q4_K_M",  
         "prompt": final_prompt,
+        "stream" : false
     }
 
-    response = requests.post("http://localhost:11434/api/generate", json=payload)
+    response = requests.post("http://192.168.18.104:11434/api/generate", json=payload)
     return response.json()

@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  matrix-service:
+    build:
+      context: ./matrix_bot
+    container_name: matrix-bot
+    depends_on:
+      - ai-service
+      - db-service
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - botnet
+
+  ai-service:
+    build:
+      context: ./ai
+    container_name: ai-service
+    ports:
+      - "8002:8002" 
+    networks:
+      - botnet
+
+  db-service:
+    build:
+      context: ./db
+    container_name: db-service
+    ports:
+      - "8003:8003"
+    networks:
+      - botnet
+
+networks:
+  botnet:
+    driver: bridge
