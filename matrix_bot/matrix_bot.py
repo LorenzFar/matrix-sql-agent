@@ -1,21 +1,25 @@
-import asyncio, logging, ssl, certifi, aiohttp
+import asyncio, logging, ssl, certifi, aiohttp, os
 from nio import AsyncClient, MatrixRoom, RoomMessageText
 from nio.responses import LoginResponse
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
-# SSL context using certifi's CA bundle
 ssl_context = ssl.create_default_context(cafile=certifi.where())
-
 client = AsyncClient("https://matrix.org", "@botmatrix123:matrix.org", ssl=ssl_context)
+SYNC_TOKEN_FILE = "sync_token.txt"
 
+# --- Message Callback ---
 async def message_callback(room: MatrixRoom, event: RoomMessageText) -> None:
-    message = event.body
-    result = await process_message(message) 
-    
-    formatted_result = format_result(result)
-    await send_message(room.room_id, formatted_result)  
+    if event.sender == client.user_id:
+        return  # Avoid replying to self
 
+    message = event.body
+    result = await process_message(message)
+    print(result)
+    formatted = format_result(result)
+    await send_message(room.room_id, formatted)
+
+# --- Send Message ---
 async def send_message(room_id: str, message: str):
     await client.room_send(
         room_id=room_id,
@@ -26,8 +30,8 @@ async def send_message(room_id: str, message: str):
         }
     )
 
+# --- Format Result ---
 def format_result(result: list[dict]) -> str:
-    print(result)
     if not result:
         return "No results found."
     
@@ -37,32 +41,30 @@ def format_result(result: list[dict]) -> str:
         for key, value in row.items():
             output.append(f"  • {key}: {value}")
         output.append("") 
-
     return "\n".join(output)
 
+# --- Query AI + DB ---
 async def process_message(message: str):
     async with aiohttp.ClientSession() as session:
-        # Step 1: Get schema
         async with session.get("http://db-service:8003/schema") as resp:
             schema_json = await resp.json()
 
-        # Step 2: Send to AI microservice
         ai_payload = {
             "question": message,
             "schema": schema_json
         }
         async with session.post("http://ai-service:8002/ai", json=ai_payload) as ai_resp:
             ai_data = await ai_resp.json()
-            query = ai_data.get("query")
+            query = ai_data.get("response")
 
-        # Step 3: Query the DB
         query_payload = {"query": query}
         async with session.post("http://db-service:8003/query", json=query_payload) as query_resp:
             result = await query_resp.json()
 
         return result
 
-async def main() -> None:
+# --- Main ---
+async def main():
     client.add_event_callback(message_callback, RoomMessageText)
 
     print("🔐 Logging in...")
@@ -74,7 +76,23 @@ async def main() -> None:
         print("❌ Login failed")
         return
 
-    await client.sync_forever(timeout=30000)
+    # Load sync token if available
+    if os.path.exists(SYNC_TOKEN_FILE):
+        with open(SYNC_TOKEN_FILE, "r") as f:
+            client.next_batch = f.read().strip()
 
+    try:
+        while True:
+            sync_response = await client.sync(timeout=30000)
+            if sync_response.next_batch:
+                with open(SYNC_TOKEN_FILE, "w") as f:
+                    f.write(sync_response.next_batch)
+    except KeyboardInterrupt:
+        print("🛑 Stopping bot...")
+    finally:
+        await client.close()
+        print("✅ Cleaned up and disconnected.")
+
+# --- Entry Point ---
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,39 +1,70 @@
-# Task
-Given a natural language question and a defined database schema (including tables and columns), return one of the following:
+<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+Generate a SQL query to answer this question: `Is steve jobs the greatest of all time ?`
+
+Return one of the following:
 * A valid MySQL query if the question is clear, relevant, and answerable using the provided schema.
 * A guidance message if the question cannot be answered due to missing information, ambiguity, or irrelevance.
 
-# Evaluation Process
-1. Relevance Check
-  Determine whether the question pertains to the given schema. If it references entities or attributes not present, consider it irrelevant.
-2. Answerability Check
-  Confirm that all necessary tables and columns are available in the schema. If any required data is missing, return a message indicating so.
-3. Clarity Check
-  Assess whether the question is clear and specific. If it's ambiguous or vague, request clarification.
-4. Schema-Based Inference
-  If the query requires logical joins or inferred relationships, apply them only if they are supported by the schema's structure.
+Evaluation Rules:
+1. Relevance Check: Determine whether the question pertains to the given schema.
+2. Answerability Check: Confirm that the required tables and columns exist in the schema.
+3. Clarity Check: Ensure the question is specific and unambiguous.
+4. Schema-Based Inference: Use logical joins or filters only if supported by the schema.
 
-# Output Format
-Return exactly like the output of one of the following for each input:
-1. Valid MySQL Query
-  If the question is relevant, clear, and answerable:
-    * Input: "List all the products that are currently on sale."
-    * Output: "SELECT product FROM sold;"
-2. Missing Information
-  If the schema lacks necessary data to answer the question:
-    * Input: "List all customers who purchased electronics."
-    * Output: "Cannot answer the question because product category information is not available in the schema. Please revise your question."
-3. Ambiguous Question
-  If the question is unclear or lacks detail:
-    * Input: "Which product is best?"
-    * Output: "The question is unclear. Please specify what you mean by 'best' (e.g., highest sales, highest rating, etc.)."
-4. Irrelevant Question
-  If the question is unrelated to the schema:
-    * Input: "What is the weather like today?"
-    * Output: "The question is not relevant to the given database schema. Please revise it to match the available information."
+Output Format:
+- If the question is relevant and answerable, return:
+  ```sql
+  SELECT ...;
+  ```
+- If the question is not answerable, return one of:
+  The question is unclear. Please specify what you mean.
+  The question is not relevant to the given database schema. Please revise it to match the available information.
+  Cannot answer the question because required information is not available in the schema.
 
-# Restrictions
-* Do not rely on external knowledge or assumptions beyond what is defined in the schema.
-* All SQL queries must reference only the tables and columns provided.
-* Only return exactly like the specified output format as in the examples
-* Do not include any additional explanations, headings, or extra text.
+Do not return explanations or anything outside the specified output format.
+
+DDL statements:
+COUNTRY:
+country_id → INTEGER [PK]
+country_name → VARCHAR(50)
+
+CUSTOMER:
+customer_id → INTEGER [PK]
+full_name → VARCHAR(100)
+email → VARCHAR(100)
+join_date → DATE
+country_id → INTEGER [FK → COUNTRY.country_id]
+
+CATEGORY:
+category_id → INTEGER [PK]
+name → VARCHAR(50)
+
+PRODUCT:
+product_id → INTEGER [PK]
+name → VARCHAR(100)
+category_id → INTEGER [FK → CATEGORY.category_id]
+price → DECIMAL(10, 2)
+
+ORDER:
+order_id → INTEGER [PK]
+customer_id → INTEGER [FK → CUSTOMER.customer_id]
+order_date → DATE
+status → VARCHAR(20)
+
+ORDER_ITEM:
+order_item_id → INTEGER [PK]
+order_id → INTEGER [FK → ORDER.order_id]
+product_id → INTEGER [FK → PRODUCT.product_id]
+quantity → INTEGER
+unit_price → DECIMAL(10, 2)
+
+REVIEW:
+review_id → INTEGER [PK]
+product_id → INTEGER [FK → PRODUCT.product_id]
+customer_id → INTEGER [FK → CUSTOMER.customer_id]
+rating → INTEGER
+review_text → TEXT
+review_date → DATE
+
+<|eot_id|><|start_header_id|>assistant<|end_header_id|>

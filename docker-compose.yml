@@ -10,6 +10,8 @@ services:
       - db-service
     environment:
       - PYTHONUNBUFFERED=1
+    volumes:
+      - ./matrix_bot:/app
     networks:
       - botnet
 
