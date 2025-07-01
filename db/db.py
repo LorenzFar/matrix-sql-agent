@@ -17,44 +17,16 @@ FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
 def get_schema():
     with engine.connect() as conn:
         result = {}
-        inspector = inspect(engine)
-        for table_name in inspector.get_table_names():
-            safe_name = quoted_name(table_name, quote=True)
-            sql = conn.execute(text(f"SHOW CREATE TABLE `{safe_name}`")).fetchone()
-            result[table_name] = sql[1]
-        return result
-    
-    # inspector = inspect(engine)
-    # schema = {}
-
-    # for table_name in inspector.get_table_names():
-    #     columns = inspector.get_columns(table_name)
-    #     pk_info = inspector.get_pk_constraint(table_name)
-    #     fk_info = inspector.get_foreign_keys(table_name)
-
-    #     pk_columns = set(pk_info.get("constrained_columns", []))
-    #     fk_columns = {
-    #         fk["constrained_columns"][0]: fk["referred_table"] + "." + fk["referred_columns"][0]
-    #         for fk in fk_info if fk.get("constrained_columns") and fk.get("referred_columns")
-    #     }
-
-    #     column_definitions = []
-    #     for col in columns:
-    #         col_name = col["name"]
-    #         col_entry = {
-    #             "name": col_name,
-    #             "type": str(col["type"]),
-    #         }
-    #         if col_name in pk_columns:
-    #             col_entry["PK"] = True
-    #         if col_name in fk_columns:
-    #             col_entry["FK"] = fk_columns[col_name]
-
-    #         column_definitions.append(col_entry)
-
-    #     schema[table_name] = column_definitions
-
-    # return schema
+        try:
+            inspector = inspect(engine)
+            for table_name in inspector.get_table_names():
+                safe_name = quoted_name(table_name, quote=True)
+                sql = conn.execute(text(f"SHOW CREATE TABLE `{safe_name}`")).fetchone()
+                result[table_name] = sql[1]
+            return result
+        
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": "Process Failure, Please try again."})
 
 @app.post("/query")
 def get_result(query: Query):
@@ -73,4 +45,5 @@ def get_result(query: Query):
             return rows
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
+            return JSONResponse(status_code=500, content={"error": "Process Failure. Please try again."})
+        

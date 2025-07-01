@@ -34,14 +34,21 @@ async def send_message(room_id: str, message: str):
 def format_result(result: list[dict]) -> str:
     if not result:
         return "No results found."
+
+    headers = list(result[0].keys())
+    col_widths = {h: max(len(h), *(len(str(row.get(h, ''))) for row in result)) for h in headers}
     
-    output = []
-    for i, row in enumerate(result, start=1):
-        output.append(f"Result #{i}:")
-        for key, value in row.items():
-            output.append(f"  • {key}: {value}")
-        output.append("") 
-    return "\n".join(output)
+    header_row = " | ".join(f"{h:<{col_widths[h]}}" for h in headers)
+    separator = "-+-".join("-" * col_widths[h] for h in headers)
+
+    data_rows = []
+    
+    for row in result:
+        data_rows.append(" | ".join(f"{str(row.get(h, '')):<{col_widths[h]}}" for h in headers))
+
+    table = [header_row, separator] + data_rows
+    return "```\n" + "\n".join(table) + "\n```"
+
 
 # --- Query AI + DB ---
 async def process_message(message: str):

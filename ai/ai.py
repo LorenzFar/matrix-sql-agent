@@ -19,6 +19,7 @@ PROMPT_TEMPLATE = """
         2. Answerability Check: Confirm that the required tables and columns exist in the schema.
         3. Clarity Check: Ensure the question is specific and unambiguous.
         4. Schema-Based Inference: Use logical joins or filters only if supported by the schema.
+        5. Always perform JOINs using foreign keys when they enrich the answer, especially for questions asking for "all information" or "complete details."
 
         Output Format:
         - If the question is relevant and answerable, return:
@@ -38,44 +39,31 @@ PROMPT_TEMPLATE = """
         <|eot_id|><|start_header_id|>assistant<|end_header_id|>
     """
 
-class ColumnDefinition(BaseModel):
-    name: str
-    type: str
-    PK: Optional[bool] = None
-    FK: Optional[str] = None
-
 class Prompt(BaseModel):
     question: str
-    schema: Dict[str, List[ColumnDefinition]]
+    schema: Dict[str, str]
 
 # Convert schema JSON to a human-readable string
-def convert_schema_to_string(schema: Prompt) -> str:
-    lines = []
-    for table_name, columns in schema.items():
-        lines.append(f"Table: {table_name}")
-        for col in columns:
-            col_line = f"  - {col.name} ({col.type})"
-            if col.PK:
-                col_line += " [PK]"
-            if col.FK:
-                col_line += f" [FK -> {col.FK}]"
-            lines.append(col_line)
-    return "\n".join(lines)
-
-# Function to generate prompt combining external txt with schema + user question
-def generate_prompt(schema: str, question: str) -> str:
-    return PROMPT_TEMPLATE.format(schema=schema, question=question)
+# def convert_schema_to_string(schema: Prompt) -> str:
+#     lines = []
+#     for table_name, columns in schema.items():
+#         lines.append(f"Table: {table_name}")
+#         for col in columns:
+#             col_line = f"  - {col.name} ({col.type})"
+#             if col.PK:
+#                 col_line += " [PK]"
+#             if col.FK:
+#                 col_line += f" [FK -> {col.FK}]"
+#             lines.append(col_line)
+#     return "\n".join(lines)
 
 @app.post("/ai")
 def ask_prompt(prompt: Prompt):
-    schema_str = convert_schema_to_string(prompt.schema)
-    final_prompt = generate_prompt(schema_str, prompt.question)
-
-    # Escape final_prompt safely for JSON transmission
-    safe_prompt = json.dumps(final_prompt)
-
-    # Remove the surrounding quotes added by json.dumps (just the outer ones)
-    safe_prompt = json.loads(safe_prompt)
+    schema = prompt.schema
+    question = prompt.question
+    
+    ddl = "\n\n".join(schema.values())
+    final_prompt = PROMPT_TEMPLATE.format(schema=ddl, question=question)
     
     payload = {
         "model": "mannix/defog-llama3-sqlcoder-8b:q6_k",  
@@ -86,5 +74,5 @@ def ask_prompt(prompt: Prompt):
     print(json.dumps(payload, indent=2)) 
 
     response = requests.post("http://192.168.18.104:11434/api/generate", json=payload)
-    print(response)
+    print(response.json()["response"])
     return response.json()

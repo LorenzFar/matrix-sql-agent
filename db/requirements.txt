@@ -7,6 +7,7 @@ annotated-types==0.7.0
 anyio==4.9.0
 attrs==25.3.0
 certifi==2025.6.15
+charset-normalizer==3.4.2
 click==8.2.1
 dnspython==2.7.0
 email_validator==2.2.0
@@ -40,6 +41,7 @@ python-multipart==0.0.20
 python-socks==2.7.1
 PyYAML==6.0.2
 referencing==0.36.2
+requests==2.32.4
 rich==14.0.0
 rich-toolkit==0.14.7
 rpds-py==0.25.1
@@ -51,6 +53,7 @@ typer==0.16.0
 typing-inspection==0.4.1
 typing_extensions==4.14.0
 unpaddedbase64==2.1.0
+urllib3==2.5.0
 uvicorn==0.34.3
 uvloop==0.21.0
 watchfiles==1.1.0
