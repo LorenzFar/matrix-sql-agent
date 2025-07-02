@@ -13,7 +13,7 @@ PROMPT_TEMPLATE = """
         Generate a SQL query to answer this question: `{question}`
 
         Return one of the following:
-        * A valid MySQL query if the question is clear, relevant, and answerable using the provided schema.
+        * A valid Microsoft SQL query if the question is clear, relevant, and answerable using the provided schema.
         * A guidance message if the question cannot be answered due to missing information, ambiguity, or irrelevance.
 
         Evaluation Rules:
@@ -61,6 +61,8 @@ def ask_prompt(prompt: Prompt):
         "prompt": final_prompt,
         "stream" : False
     }
+
+    print(payload["prompt"])
 
     response = requests.post(f"{endpoint}/api/generate", json=payload)
 

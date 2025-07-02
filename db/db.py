@@ -26,23 +26,40 @@ FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
 
 @app.get("/schema")
 def get_schema():
-    with engine.connect() as conn:
-        try:
+    try:
+        ddl_output = []
+        with engine.connect() as conn:
             inspector = inspect(engine)
+            tables = inspector.get_table_names()
+
             result = {}
 
-            for table_name in inspector.get_table_names():
-                # Get columns and types for each table
-                columns = inspector.get_columns(table_name)
-                column_definitions = [
-                    f"{col['name']} {col['type']}" for col in columns
-                ]
-                result[table_name] = "\n".join(column_definitions)
+            for table in tables:
+                ddl_lines = [f"CREATE TABLE {table} ("]
+                columns = inspector.get_columns(table)
 
-            return result
+                col_defs = []
+                for col in columns:
+                    col_name = col["name"]
+                    col_type = str(col["type"])
+                    nullable = "" if col["nullable"] else " NOT NULL"
+                    col_defs.append(f"    {col_name} {col_type}{nullable}")
 
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Process Failure: {str(e)}")
+                # Primary key
+                pk = inspector.get_pk_constraint(table)
+                if pk and pk.get("constrained_columns"):
+                    pk_cols = ", ".join(pk["constrained_columns"])
+                    col_defs.append(f"    PRIMARY KEY ({pk_cols})")
+
+                ddl_lines.append(",\n".join(col_defs))
+                ddl_lines.append(");")
+
+                result[table] = "\n".join(ddl_lines)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Process Failure: {str(e)}")
 
 @app.post("/query")
 def get_result(query: Query):
