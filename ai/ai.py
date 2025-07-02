@@ -1,7 +1,7 @@
 import requests, json
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict
 
 app = FastAPI()
 
@@ -37,25 +37,14 @@ PROMPT_TEMPLATE = """
         {schema}
 
         <|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+        The following SQL query best answers the question `{question}`:
+        ```sql
     """
 
 class Prompt(BaseModel):
     question: str
     schema: Dict[str, str]
-
-# Convert schema JSON to a human-readable string
-# def convert_schema_to_string(schema: Prompt) -> str:
-#     lines = []
-#     for table_name, columns in schema.items():
-#         lines.append(f"Table: {table_name}")
-#         for col in columns:
-#             col_line = f"  - {col.name} ({col.type})"
-#             if col.PK:
-#                 col_line += " [PK]"
-#             if col.FK:
-#                 col_line += f" [FK -> {col.FK}]"
-#             lines.append(col_line)
-#     return "\n".join(lines)
 
 @app.post("/ai")
 def ask_prompt(prompt: Prompt):

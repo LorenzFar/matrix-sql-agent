@@ -2,34 +2,43 @@ version: "3.9"
 
 services:
   matrix-service:
-    build:
+    image: yourusername/matrix-bot:latest    
+    build:                                   
       context: ./matrix_bot
     container_name: matrix-bot
     depends_on:
       - ai-service
       - db-service
+    env_file:
+      - ../.env                              
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./matrix_bot:/app
+      - ./matrix_bot:/app                    
     networks:
       - botnet
 
   ai-service:
+    image: yourusername/ai-service:latest
     build:
       context: ./ai
     container_name: ai-service
     ports:
-      - "8002:8002" 
+      - "8002:8002"
+    env_file:
+      - ../.env
     networks:
       - botnet
 
   db-service:
+    image: yourusername/db-service:latest
     build:
       context: ./db
     container_name: db-service
     ports:
       - "8003:8003"
+    env_file:
+      - ../.env
     networks:
       - botnet
 

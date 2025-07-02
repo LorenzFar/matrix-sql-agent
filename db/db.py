@@ -1,15 +1,27 @@
+import os, urllib
 from fastapi import FastAPI, HTTPException, Body
 from sqlalchemy import create_engine, inspect, text, quoted_name
 from pydantic import BaseModel
 
 app = FastAPI()
 
+db_username = os.getenv("DB_USERNAME")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST", "localhost")
+db_port = os.getenv("DB_PORT", "3306")
+db_name = os.getenv("DB_NAME")
+db_driver = os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server")
+
+driver_encoded = urllib.parse.quote_plus(f"driver={db_driver}")
+
+# DB_URL = f"mssql+pyodbc://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}?driver={driver_encoded}"
+DB_URL = f"mysql+mysqlconnector://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+engine = create_engine(DB_URL)
+
 # Body Model for query payload
 class Query(BaseModel):
     query: str
-
-DB_URL = "mysql+mysqlconnector://root:root@host.docker.internal:3306/AI"
-engine = create_engine(DB_URL)
 
 FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
 
@@ -26,7 +38,7 @@ def get_schema():
             return result
         
         except Exception as e:
-            return JSONResponse(status_code=500, content={"error": "Process Failure, Please try again."})
+            raise HTTPException(status_code=500, detail="Process Failure. Please try again.")
 
 @app.post("/query")
 def get_result(query: Query):
@@ -45,5 +57,5 @@ def get_result(query: Query):
             return rows
 
         except Exception as e:
-            return JSONResponse(status_code=500, content={"error": "Process Failure. Please try again."})
+            raise HTTPException(status_code=500, detail="Process Failure. Please try again.")
         

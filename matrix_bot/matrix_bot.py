@@ -1,11 +1,16 @@
 import asyncio, logging, ssl, certifi, aiohttp, os
+from aiohttp import ClientError
 from nio import AsyncClient, MatrixRoom, RoomMessageText
 from nio.responses import LoginResponse
 
 logging.basicConfig(level=logging.INFO)
 
+bot_username = os.getenv("MATRIX_USERNAME")
+bot_password = os.getenv("MATRIX_PASSWORD")
+base_url = os.getenv("BASE_URL")
+
 ssl_context = ssl.create_default_context(cafile=certifi.where())
-client = AsyncClient("https://matrix.org", "@botmatrix123:matrix.org", ssl=ssl_context)
+client = AsyncClient(base_url, bot_username , ssl=ssl_context)
 SYNC_TOKEN_FILE = "sync_token.txt"
 
 # --- Message Callback ---
@@ -35,47 +40,64 @@ def format_result(result: list[dict]) -> str:
     if not result:
         return "No results found."
 
-    headers = list(result[0].keys())
-    col_widths = {h: max(len(h), *(len(str(row.get(h, ''))) for row in result)) for h in headers}
-    
-    header_row = " | ".join(f"{h:<{col_widths[h]}}" for h in headers)
-    separator = "-+-".join("-" * col_widths[h] for h in headers)
+    if isinstance(result, dict) and "error" in result:
+        return result["error"]
 
-    data_rows = []
-    
-    for row in result:
-        data_rows.append(" | ".join(f"{str(row.get(h, '')):<{col_widths[h]}}" for h in headers))
+    lines = []
+    for i, row in enumerate(result, 1):
+        lines.append(f"--- Row {i} ---")
+        for key, value in row.items():
+            lines.append(f"{key}: {value}")
+        lines.append("")
 
-    table = [header_row, separator] + data_rows
-    return "```\n" + "\n".join(table) + "\n```"
-
+    return "\n" + "\n".join(lines) + "\n"
 
 # --- Query AI + DB ---
 async def process_message(message: str):
-    async with aiohttp.ClientSession() as session:
-        async with session.get("http://db-service:8003/schema") as resp:
-            schema_json = await resp.json()
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Step 1: Get schema
+            try:
+                async with session.get("http://db-service:8003/schema") as resp:
+                    if resp.status != 200:
+                        return {"error": "Failed to fetch schema."}
+                    schema_json = await resp.json()
+            except ClientError:
+                return {"error": "Database service is unreachable (schema)."}
 
-        ai_payload = {
-            "question": message,
-            "schema": schema_json
-        }
-        async with session.post("http://ai-service:8002/ai", json=ai_payload) as ai_resp:
-            ai_data = await ai_resp.json()
-            query = ai_data.get("response")
+            # Step 2: Get AI-generated query
+            ai_payload = {"question": message, "schema": schema_json}
+            try:
+                async with session.post("http://ai-service:8002/ai", json=ai_payload) as ai_resp:
+                    if ai_resp.status != 200:
+                        return {"error": "AI service failed to generate query."}
+                    ai_data = await ai_resp.json()
+                    query = ai_data.get("response")
+                    if not query:
+                        return {"error": "AI service returned no query."}
+            except ClientError:
+                return {"error": "AI service is unreachable."}
 
-        query_payload = {"query": query}
-        async with session.post("http://db-service:8003/query", json=query_payload) as query_resp:
-            result = await query_resp.json()
+            # Step 3: Execute query
+            query_payload = {"query": query}
+            try:
+                async with session.post("http://db-service:8003/query", json=query_payload) as query_resp:
+                    if query_resp.status != 200:
+                        return {"error": query_resp.detail}
+                    result = await query_resp.json()
+                    return result
+            except ClientError:
+                return {"error": "Database service is unreachable (query)."}
 
-        return result
+    except Exception as e:
+        return {"error": "Unexpected error occurred."}
 
 # --- Main ---
 async def main():
     client.add_event_callback(message_callback, RoomMessageText)
 
     print("🔐 Logging in...")
-    login_response = await client.login("qymmib-diqpyp-Nevxo5")
+    login_response = await client.login(bot_password)
 
     if isinstance(login_response, LoginResponse):
         print("✅ Login success")
