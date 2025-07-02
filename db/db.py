@@ -8,14 +8,13 @@ app = FastAPI()
 db_username = os.getenv("DB_USERNAME")
 db_password = os.getenv("DB_PASSWORD")
 db_host = os.getenv("DB_HOST", "localhost")
-db_port = os.getenv("DB_PORT", "3306")
+db_port = os.getenv("DB_PORT", "1433")
 db_name = os.getenv("DB_NAME")
-db_driver = os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server")
 
-driver_encoded = urllib.parse.quote_plus(f"driver={db_driver}")
+driver_encoded = urllib.parse.quote_plus("ODBC Driver 18 for SQL Server")
 
-# DB_URL = f"mssql+pyodbc://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}?driver={driver_encoded}"
-DB_URL = f"mysql+mysqlconnector://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
+DB_URL = f"mssql+pyodbc://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}?driver={driver_encoded}&Encrypt=no"
+#DB_URL = f"mysql+mysqlconnector://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 engine = create_engine(DB_URL)
 
@@ -28,17 +27,22 @@ FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
 @app.get("/schema")
 def get_schema():
     with engine.connect() as conn:
-        result = {}
         try:
             inspector = inspect(engine)
+            result = {}
+
             for table_name in inspector.get_table_names():
-                safe_name = quoted_name(table_name, quote=True)
-                sql = conn.execute(text(f"SHOW CREATE TABLE `{safe_name}`")).fetchone()
-                result[table_name] = sql[1]
+                # Get columns and types for each table
+                columns = inspector.get_columns(table_name)
+                column_definitions = [
+                    f"{col['name']} {col['type']}" for col in columns
+                ]
+                result[table_name] = "\n".join(column_definitions)
+
             return result
-        
+
         except Exception as e:
-            raise HTTPException(status_code=500, detail="Process Failure. Please try again.")
+            raise HTTPException(status_code=500, detail=f"Process Failure: {str(e)}")
 
 @app.post("/query")
 def get_result(query: Query):

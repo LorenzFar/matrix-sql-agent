@@ -1,9 +1,11 @@
-import requests, json
+import requests, json, os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict
 
 app = FastAPI()
+
+endpoint = os.getenv("AI_BASE_URL", "http://localhost:11434")
 
 PROMPT_TEMPLATE = """
         <|begin_of_text|><|start_header_id|>user<|end_header_id|>
@@ -60,8 +62,6 @@ def ask_prompt(prompt: Prompt):
         "stream" : False
     }
 
-    print(json.dumps(payload, indent=2)) 
+    response = requests.post(f"{endpoint}/api/generate", json=payload)
 
-    response = requests.post("http://192.168.18.104:11434/api/generate", json=payload)
-    print(response.json()["response"])
     return response.json()

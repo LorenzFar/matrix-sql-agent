@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   matrix-service:
     image: yourusername/matrix-bot:latest    
@@ -10,7 +8,7 @@ services:
       - ai-service
       - db-service
     env_file:
-      - ../.env                              
+      - .env                              
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
@@ -26,7 +24,7 @@ services:
     ports:
       - "8002:8002"
     env_file:
-      - ../.env
+      - .env
     networks:
       - botnet
 
@@ -38,7 +36,7 @@ services:
     ports:
       - "8003:8003"
     env_file:
-      - ../.env
+      - .env
     networks:
       - botnet
 

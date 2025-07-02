@@ -20,7 +20,7 @@ async def message_callback(room: MatrixRoom, event: RoomMessageText) -> None:
 
     message = event.body
     result = await process_message(message)
-    print(result)
+
     formatted = format_result(result)
     await send_message(room.room_id, formatted)
 
