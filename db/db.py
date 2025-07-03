@@ -27,56 +27,78 @@ FORBIDDEN_KEYWORDS = {"drop", "delete", "update", "insert", "alter", "truncate"}
 @app.get("/schema")
 def get_schema():
     try:
-        ddl_output = []
         with engine.connect() as conn:
             inspector = inspect(engine)
             tables = inspector.get_table_names()
-
             result = {}
 
             for table in tables:
-                ddl_lines = [f"CREATE TABLE {table} ("]
+                lines = [f"Tabel: {table}", "Kolom:"]
+
                 columns = inspector.get_columns(table)
+                pk = inspector.get_pk_constraint(table).get("constrained_columns", [])
 
-                col_defs = []
                 for col in columns:
-                    col_name = col["name"]
-                    col_type = str(col["type"])
-                    nullable = "" if col["nullable"] else " NOT NULL"
-                    col_defs.append(f"    {col_name} {col_type}{nullable}")
+                    name = col["name"]
+                    sql_type = str(col["type"]).lower()
+                    nullable = col["nullable"]
+                    is_pk = name in pk
 
-                # Primary key
-                pk = inspector.get_pk_constraint(table)
-                if pk and pk.get("constrained_columns"):
-                    pk_cols = ", ".join(pk["constrained_columns"])
-                    col_defs.append(f"    PRIMARY KEY ({pk_cols})")
+                    if "varchar" in sql_type or "char" in sql_type or "text" in sql_type:
+                        col_type = "teks"
+                    elif "int" in sql_type:
+                        col_type = "bilangan bulat"
+                    elif "decimal" in sql_type or "numeric" in sql_type or "float" in sql_type:
+                        col_type = "angka desimal"
+                    elif "date" in sql_type or "time" in sql_type:
+                        col_type = "tanggal/waktu"
+                    elif "bool" in sql_type:
+                        col_type = "boolean"
+                    else:
+                        col_type = sql_type  # fallback
 
-                ddl_lines.append(",\n".join(col_defs))
-                ddl_lines.append(");")
+                    description = f"- {name}: {col_type}"
+                    if is_pk:
+                        description += ", kunci utama"
+                    if not nullable and not is_pk:
+                        description += ", wajib diisi"
 
-                result[table] = "\n".join(ddl_lines)
+                    lines.append(description)
 
-        return result
+                result[table] = "\n".join(lines)
+
+            return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Process Failure: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gagal memproses skema: {str(e)}")
+
+def safe_encode_row(row_dict):
+    for key, value in row_dict.items():
+        if isinstance(value, bytes):
+            row_dict[key] = base64.b64encode(value).decode("utf-8")
+    return row_dict
 
 @app.post("/query")
 def get_result(query: Query):
-
-    #Check for any prohibited SQL Query
     lowered_query = query.query.lower()
-    for keyword in FORBIDDEN_KEYWORDS:
-        if keyword in lowered_query:
-            raise HTTPException(status_code=400, detail="Prohibited SQL statement detected.")
 
-    with engine.connect() as connection:
-        try:
+    print(lowered_query)
+
+    # Check for forbidden SQL keywords
+    if any(keyword in lowered_query for keyword in FORBIDDEN_KEYWORDS):
+        raise HTTPException(status_code=400, detail="Prohibited SQL statement detected.")
+
+    try:
+        with engine.connect() as connection:
             result = connection.execute(text(query.query))
             rows = result.mappings().all()
 
-            return rows
+            # Encode binary fields to avoid JSON serialization errors
+            safe_rows = [safe_encode_row(dict(row)) for row in rows]
 
-        except Exception as e:
-            raise HTTPException(status_code=500, detail="Process Failure. Please try again.")
+            return safe_rows
+
+    except Exception as e:
+        print("SQL Execution Error:", str(e))
+        raise HTTPException(status_code=500, detail=f"Process Failure: {str(e)}")
         
