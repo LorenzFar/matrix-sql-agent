@@ -13,5 +13,8 @@ def embed_schema(schema_dict):
     embeddings =  model.encode(texts, normalize_embeddings=True)
     return np.array(embeddings)
 
-
-
+def embed_query(query):
+    prefix = "Represent this sentence for retrieval: "
+    embedding = model.encode(prefix + query, normalize_embeddings=True)
+    
+    return np.array(embedding)

@@ -1,11 +1,3 @@
-import requests, json, os
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Dict
-
-app = FastAPI()
-
-endpoint = os.getenv("AI_BASE_URL", "http://localhost:11434")
 
 PROMPT_TEMPLATE = """
         <|begin_of_text|><|start_header_id|>user<|end_header_id|>
@@ -48,26 +40,8 @@ PROMPT_TEMPLATE = """
         ```sql
     """
 
-class Prompt(BaseModel):
-    question: str
-    schema: Dict[str, str]
-
-@app.post("/ai")
-def ask_prompt(prompt: Prompt):
-    schema = prompt.schema
-    question = prompt.question
-    
+def build_prompt(schema, question):
     ddl = "\n\n".join(schema.values())
     final_prompt = PROMPT_TEMPLATE.format(schema=ddl, question=question)
-    
-    payload = {
-        "model": "mannix/defog-llama3-sqlcoder-8b:q6_k",  
-        "prompt": final_prompt,
-        "stream" : False
-    }
 
-    print(payload["prompt"])
-
-    response = requests.post(f"{endpoint}/api/generate", json=payload)
-
-    return response.json()
+    return final_prompt
