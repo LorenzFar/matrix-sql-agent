@@ -22,12 +22,12 @@ def ask_prompt(prompt: Prompt):
 
     schema_texts = list(schema.values())
     schema_embeddings = embed_schema(schema)
-    index = build_faiss_index(schema_embeddings, schema_texts)
+    index = build_faiss_index(schema_embeddings)
 
     query_vector = embed_query(question)
     top_chunks = search_top_k(index, schema_texts, query_vector)
 
-    final_prompt = build_prompt(question, top_chunks)
+    final_prompt = build_prompt(top_chunks, question)
     
     payload = {
         "model": "mannix/defog-llama3-sqlcoder-8b:q6_k",  

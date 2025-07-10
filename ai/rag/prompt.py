@@ -41,7 +41,7 @@ PROMPT_TEMPLATE = """
     """
 
 def build_prompt(schema, question):
-    ddl = "\n\n".join(schema.values())
+    ddl = "\n\n".join(schema)
     final_prompt = PROMPT_TEMPLATE.format(schema=ddl, question=question)
 
     return final_prompt
