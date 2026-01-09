@@ -1,7 +1,10 @@
 # Matrix SQL Agent 🤖
 
 ## Description
-I created this AI chatbot to help non-technical users interact with databases using natural language. Users can input simple prompts, and the bot translates them into SQL queries to return results.
+This project started after repeatedly seeing my parents struggle with pulling simple information from databases.
+I wanted to experiment with whether a chat-based interface could make accessing data more intuitive without requiring SQL knowledge.
+
+Matrix SQL Agent is a lightweight chatbot that converts natural language prompts into SQL queries and returns the results directly in chat.
 
 ## Features
 - Natural language database query support
