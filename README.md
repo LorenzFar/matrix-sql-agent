@@ -10,13 +10,26 @@ I created this AI chatbot to help non-technical users interact with databases us
 - Integrated with Matrix.org for real-time interactions
 
 ## Tech Stack
-<p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="40" height="40"/>
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original-wordmark.svg" alt="FastAPI" width="40" height="40"/>
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" width="40" height="40"/>
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/matrix/matrix-original.svg" alt="Matrix.org" width="40" height="40"/>
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/openai/openai-original.svg" alt="Ollama" width="40" height="40"/>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="55"/><br/>
+      <sub><b>Python</b></sub>
+    </td>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original-wordmark.svg" width="65"/><br/>
+      <sub><b>FastAPI</b></sub>
+    </td>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" width="60"/><br/>
+      <sub><b>Docker</b></sub>
+    </td>
+    <td align="center">
+      <img src="https://unpkg.com/@lobehub/icons-static-svg@latest/icons/ollama.svg" width="60"/><br/>
+      <sub><b>Ollama</b></sub>
+    </td>
+  </tr>
+</table>
 
 ## Status
 Ongoing personal project — core features implemented.  
